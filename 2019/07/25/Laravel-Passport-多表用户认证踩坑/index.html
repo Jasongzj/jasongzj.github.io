@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"jasongzj.github.io","root":"/","scheme":"Gemini","version":"8.0.0-rc.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="本次项目的后台使用 iview-admin 搭建，前后端是分离的，需要给后台管理也写一套接口（看了几篇资料说可以把iview-admin 放到 laravel 项目里跑，但没有成功，卒），于是想用 passport 来做后台接口的认证。谁知过程一波三折，折腾了两天，算是摸清了坑也爬起来了。坑了一次不能再被坑第二次，也不希望后面的人接着被坑，于是就有了这篇文章，给大家介绍一下整体的流程和避坑操作。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Laravel Passport 多表用户认证踩坑">
+<meta property="og:url" content="http://jasongzj.github.io/2019/07/25/Laravel-Passport-%E5%A4%9A%E8%A1%A8%E7%94%A8%E6%88%B7%E8%AE%A4%E8%AF%81%E8%B8%A9%E5%9D%91/index.html">
+<meta property="og:site_name" content="第三选择">
+<meta property="og:description" content="本次项目的后台使用 iview-admin 搭建，前后端是分离的，需要给后台管理也写一套接口（看了几篇资料说可以把iview-admin 放到 laravel 项目里跑，但没有成功，卒），于是想用 passport 来做后台接口的认证。谁知过程一波三折，折腾了两天，算是摸清了坑也爬起来了。坑了一次不能再被坑第二次，也不希望后面的人接着被坑，于是就有了这篇文章，给大家介绍一下整体的流程和避坑操作。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-07-25T09:05:22.000Z">
+<meta property="article:modified_time" content="2020-05-28T05:55:31.619Z">
+<meta property="article:author" content="Jasongzj">
+<meta property="article:tag" content="Laravel">
+<meta property="article:tag" content="OAuth">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://jasongzj.github.io/2019/07/25/Laravel-Passport-%E5%A4%9A%E8%A1%A8%E7%94%A8%E6%88%B7%E8%AE%A4%E8%AF%81%E8%B8%A9%E5%9D%91/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Laravel Passport 多表用户认证踩坑 | 第三选择</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+        <span class="toggle-line toggle-line-first"></span>
+        <span class="toggle-line toggle-line-middle"></span>
+        <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">第三选择</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">刻意练习，日渐精进</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://jasongzj.github.io/2019/07/25/Laravel-Passport-%E5%A4%9A%E8%A1%A8%E7%94%A8%E6%88%B7%E8%AE%A4%E8%AF%81%E8%B8%A9%E5%9D%91/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="Jasongzj">
+      <meta itemprop="description" content="Stay Hungry, Stay Foolish">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="第三选择">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Laravel Passport 多表用户认证踩坑
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-07-25 17:05:22" itemprop="dateCreated datePublished" datetime="2019-07-25T17:05:22+08:00">2019-07-25</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-05-28 13:55:31" itemprop="dateModified" datetime="2020-05-28T13:55:31+08:00">2020-05-28</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Laravel/" itemprop="url" rel="index"><span itemprop="name">Laravel</span></a>
+                </span>
+            </span>
+
+          
+            <span id="/2019/07/25/Laravel-Passport-%E5%A4%9A%E8%A1%A8%E7%94%A8%E6%88%B7%E8%AE%A4%E8%AF%81%E8%B8%A9%E5%9D%91/" class="post-meta-item leancloud_visitors" data-flag-title="Laravel Passport 多表用户认证踩坑" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>6.2k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>8 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>本次项目的后台使用 iview-admin 搭建，前后端是分离的，需要给后台管理也写一套接口（看了几篇资料说可以把iview-admin 放到 laravel 项目里跑，但没有成功，卒），于是想用 passport 来做后台接口的认证。谁知过程一波三折，折腾了两天，算是摸清了坑也爬起来了。坑了一次不能再被坑第二次，也不希望后面的人接着被坑，于是就有了这篇文章，给大家介绍一下整体的流程和避坑操作。</p>
+<a id="more"></a>
+<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><p>项目是 Laravel 5.5 的，直接使用 <code>composer require laravel/passport</code> 安装可能会出现报错。如果报错的话建议修改 <code>composer.json</code> 文件，然后 <code>composer update</code> 安装。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">"require"</span>: &#123;</span><br><span class="line">	<span class="string">"laravel/passport"</span>: <span class="string">"~4.0"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h2><h3 id="执行迁移"><a href="#执行迁移" class="headerlink" title="执行迁移"></a>执行迁移</h3><p>框架会自动生成 passport 所需要的数据表</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ php artisan migrate</span><br></pre></td></tr></table></figure>
+
+<h3 id="生成加密密钥"><a href="#生成加密密钥" class="headerlink" title="生成加密密钥"></a>生成加密密钥</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ php artisan passport:install</span><br></pre></td></tr></table></figure>
+
+<h3 id="使用-HasApiTokens"><a href="#使用-HasApiTokens" class="headerlink" title="使用 HasApiTokens"></a>使用 HasApiTokens</h3><p> 在认证用的 model 中添加 <code>HasApiTokens</code> Trait，并且 model 要继承 <code>Illuminate\Foundation\Auth\User</code></p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">App</span>\<span class="title">Models</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">use</span> <span class="title">Illuminate</span>\<span class="title">Foundation</span>\<span class="title">Auth</span>\<span class="title">User</span> <span class="title">as</span> <span class="title">Authenticatable</span>;</span><br><span class="line"><span class="keyword">use</span> <span class="title">Laravel</span>\<span class="title">Passport</span>\<span class="title">HasApiTokens</span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">AdminUser</span> <span class="keyword">extends</span> <span class="title">Authenticatable</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">use</span> <span class="title">HasApiTokens</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="更改-guard-和-provider"><a href="#更改-guard-和-provider" class="headerlink" title="更改 guard 和 provider"></a>更改 guard 和 provider</h3><p>在 <code>config/auth.php</code></p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">'guards'</span> =&gt; [</span><br><span class="line">    <span class="string">'web'</span> =&gt; [</span><br><span class="line">        <span class="string">'driver'</span> =&gt; <span class="string">'session'</span>,</span><br><span class="line">        <span class="string">'provider'</span> =&gt; <span class="string">'users'</span>,</span><br><span class="line">    ],</span><br><span class="line"></span><br><span class="line">    <span class="string">'admin'</span> =&gt; [</span><br><span class="line">        <span class="string">'driver'</span> =&gt; <span class="string">'passport'</span>,</span><br><span class="line">        <span class="string">'provider'</span> =&gt; <span class="string">'admin_users'</span>,</span><br><span class="line">    ],</span><br><span class="line">],</span><br><span class="line"></span><br><span class="line"><span class="string">'providers'</span> =&gt; [</span><br><span class="line">    <span class="string">'users'</span> =&gt; [</span><br><span class="line">        <span class="string">'driver'</span> =&gt; <span class="string">'eloquent'</span>,</span><br><span class="line">        <span class="string">'model'</span> =&gt; App\Models\User::class,</span><br><span class="line">    ],</span><br><span class="line"></span><br><span class="line">    <span class="string">'admin_users'</span> =&gt; [</span><br><span class="line">        <span class="string">'driver'</span> =&gt; <span class="string">'eloquent'</span>,</span><br><span class="line">        <span class="string">'model'</span> =&gt; App\Models\AdminUser::class,</span><br><span class="line">    ],</span><br><span class="line">],</span><br></pre></td></tr></table></figure>
+
+<h2 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h2><p>到这一步，可以开始实现登录的逻辑了，我希望验证的是 <code>admin_users</code> 表里的管理用户，但是根据其他教程的配置，发现一直验证的都是 <code>users</code> 表。最后看了源码，发现这么一个大坑。<br><code>src/Bridge/UserRepository.php</code></p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">getUserEntityByUserCredentials</span><span class="params">($username, $password, $grantType, ClientEntityInterface $clientEntity)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    $provider = config(<span class="string">'auth.guards.api.provider'</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (is_null($model = config(<span class="string">'auth.providers.'</span>.$provider.<span class="string">'.model'</span>))) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">'Unable to determine authentication model from configuration.'</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (method_exists($model, <span class="string">'findForPassport'</span>)) &#123;</span><br><span class="line">        $user = (<span class="keyword">new</span> $model)-&gt;findForPassport($username);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        $user = (<span class="keyword">new</span> $model)-&gt;where(<span class="string">'email'</span>, $username)-&gt;first();</span><br><span class="line">    &#125;</span><br><span class="line">	·</span><br><span class="line">	·</span><br><span class="line">	·</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这段源码可以发现两个问题。第一个，passport 认证的 model 是 <code>auth.guards.api.provider</code> 里定义的 model。<br>第二个，认证默认验证的字段是 <code>email</code>，如果你的用户名是其他的字段，那么就要自己在认证的model里实现 <code>findForPassport</code> 方法。发现了坑，就想办法解决掉，下面是具体的使用方法，可以供大家参考。</p>
+<h3 id="创建一个登录认证的-trait"><a href="#创建一个登录认证的-trait" class="headerlink" title="创建一个登录认证的 trait"></a>创建一个登录认证的 trait</h3><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Created by PhpStorm.</span></span><br><span class="line"><span class="comment"> * User: jason</span></span><br><span class="line"><span class="comment"> * Date: 2018/12/24</span></span><br><span class="line"><span class="comment"> * Time: 0:14</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">App</span>\<span class="title">Http</span>\<span class="title">Controllers</span>\<span class="title">Admin</span>\<span class="title">Traits</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">use</span> <span class="title">GuzzleHttp</span>\<span class="title">Client</span>;</span><br><span class="line"><span class="keyword">use</span> <span class="title">GuzzleHttp</span>\<span class="title">Exception</span>\<span class="title">RequestException</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">trait</span> ProxyHelpers</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> mixed</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@throws</span> \GuzzleHttp\Exception\GuzzleException</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">authenticate</span><span class="params">($guard = <span class="string">''</span>)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        $client = <span class="keyword">new</span> Client();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            $url = request()-&gt;root() . <span class="string">'/admin/oauth/token'</span>;</span><br><span class="line"></span><br><span class="line">            $params = array_merge(config(<span class="string">'passport.proxy'</span>), [</span><br><span class="line">                <span class="string">'username'</span> =&gt; request(<span class="string">'username'</span>),</span><br><span class="line">                <span class="string">'password'</span> =&gt; request(<span class="string">'password'</span>),</span><br><span class="line">                <span class="string">'provider'</span> =&gt; $guard</span><br><span class="line">            ]);</span><br><span class="line"></span><br><span class="line">            $respond = $client-&gt;post($url, [<span class="string">'form_params'</span> =&gt; $params]);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (RequestException $exception) &#123;</span><br><span class="line">            abort(<span class="number">401</span>, $exception-&gt;getMessage());</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> ($respond-&gt;getStatusCode() !== <span class="number">401</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> json_decode($respond-&gt;getBody()-&gt;getContents(), <span class="keyword">true</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">       abort(<span class="number">401</span>, <span class="string">'账号或密码错误'</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">getRefreshToken</span><span class="params">()</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        $client = <span class="keyword">new</span> Client();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            $url = request()-&gt;root() . <span class="string">'admin/oauth/token'</span>;</span><br><span class="line"></span><br><span class="line">            $params = array_merge(config(<span class="string">'passport.proxy'</span>), [</span><br><span class="line">                <span class="string">'refresh_token'</span> =&gt; request(<span class="string">'refresh_token'</span>),</span><br><span class="line">            ]);</span><br><span class="line"></span><br><span class="line">            $respond = $client-&gt;post($url, [<span class="string">'form_params'</span> =&gt; $params]);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (RequestException $exception) &#123;</span><br><span class="line">            abort(<span class="number">401</span>, <span class="string">'请求失败，服务器错误'</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> ($respond-&gt;getStatusCode() !== <span class="number">401</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> json_decode($respond-&gt;getBody()-&gt;getContents(), <span class="keyword">true</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        abort(<span class="number">401</span>, <span class="string">'refresh_token 错误'</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="登录控制器"><a href="#登录控制器" class="headerlink" title="登录控制器"></a>登录控制器</h3><p>使用上面定义的 ProxyHelpers trait 来完成认证，响应部分可以参考 <a href="https://learnku.com/articles/6035/laravel55-developing-api-combat" target="_blank" rel="noopener">Laravel5.5+passport 放弃 dingo 开发 API 实战，让 API 开发更省心</a> 的内容来实现</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">App</span>\<span class="title">Http</span>\<span class="title">Controllers</span>\<span class="title">Admin</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">use</span> <span class="title">App</span>\<span class="title">Http</span>\<span class="title">Controllers</span>\<span class="title">Admin</span>\<span class="title">Traits</span>\<span class="title">ProxyHelpers</span>;</span><br><span class="line"><span class="keyword">use</span> <span class="title">App</span>\<span class="title">Http</span>\<span class="title">Requests</span>\<span class="title">Admin</span>\<span class="title">LoginRequest</span>;</span><br><span class="line"><span class="keyword">use</span> <span class="title">App</span>\<span class="title">Models</span>\<span class="title">AdminUser</span>;</span><br><span class="line"><span class="keyword">use</span> <span class="title">Carbon</span>\<span class="title">Carbon</span>;</span><br><span class="line"><span class="keyword">use</span> <span class="title">Illuminate</span>\<span class="title">Foundation</span>\<span class="title">Auth</span>\<span class="title">AuthenticatesUsers</span>;</span><br><span class="line"><span class="keyword">use</span> <span class="title">Illuminate</span>\<span class="title">Http</span>\<span class="title">Request</span>;</span><br><span class="line"><span class="keyword">use</span> <span class="title">Illuminate</span>\<span class="title">Support</span>\<span class="title">Facades</span>\<span class="title">Auth</span>;</span><br><span class="line"><span class="keyword">use</span> <span class="title">Illuminate</span>\<span class="title">Support</span>\<span class="title">Facades</span>\<span class="title">Hash</span>;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LoginController</span> <span class="keyword">extends</span> <span class="title">Controller</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">use</span> <span class="title">AuthenticatesUsers</span>, <span class="title">ProxyHelpers</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">login</span><span class="params">(LoginRequest $request)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        $user = AdminUser::query()-&gt;where(<span class="string">'username'</span>, $request-&gt;username)-&gt;first();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (!$user) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;failed(<span class="string">'用户不存在'</span>, <span class="number">401</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (!Hash::check($request-&gt;password, $user-&gt;password)) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;failed(<span class="string">'密码不正确'</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        $user-&gt;last_login_at = Carbon::now()-&gt;toDateTimeString();</span><br><span class="line">        $user-&gt;save();</span><br><span class="line"></span><br><span class="line">        $token = <span class="keyword">$this</span>-&gt;authenticate(‘admin’);  <span class="comment">// 认证用的 guard</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">$this</span>-&gt;success([<span class="string">'token'</span> =&gt; $token, <span class="string">'user'</span> =&gt; $user]);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">logout</span><span class="params">()</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (Auth::guard(<span class="string">'admin'</span>)-&gt;check()) &#123;</span><br><span class="line">            Auth::guard(<span class="string">'admin'</span>)-&gt;user()-&gt;token()-&gt;delete();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="创建一个处理请求的中间件-PassportCustomProvider"><a href="#创建一个处理请求的中间件-PassportCustomProvider" class="headerlink" title="创建一个处理请求的中间件 PassportCustomProvider"></a>创建一个处理请求的中间件 <code>PassportCustomProvider</code></h3><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">App</span>\<span class="title">Http</span>\<span class="title">Middleware</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">use</span> <span class="title">Closure</span>;</span><br><span class="line"><span class="keyword">use</span> <span class="title">Illuminate</span>\<span class="title">Support</span>\<span class="title">Facades</span>\<span class="title">Config</span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">PassportCustomProvider</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Handle an incoming request.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span>  \Illuminate\Http\Request  $request</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span>  \Closure  $next</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span> mixed</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">handle</span><span class="params">($request, Closure $next)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        $params = $request-&gt;all();</span><br><span class="line">        <span class="keyword">if</span> (array_key_exists(<span class="string">'provider'</span>, $params)) &#123;</span><br><span class="line">            Config::set(<span class="string">'auth.guards.api.provider'</span>, $params[<span class="string">'provider'</span>]);  <span class="comment">// 动态配置 auth.guards.api.provider 的 model</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> $next($request);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="注册路由中间件"><a href="#注册路由中间件" class="headerlink" title="注册路由中间件"></a>注册路由中间件</h3><p>在 <code>app\Http\Kernel.php</code> 中注册配置的路由</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> $routeMiddleware = [</span><br><span class="line">    <span class="string">'auth'</span> =&gt; \Illuminate\Auth\Middleware\Authenticate::class,</span><br><span class="line">    <span class="string">'auth.basic'</span> =&gt; \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,</span><br><span class="line">    <span class="string">'bindings'</span> =&gt; \Illuminate\Routing\Middleware\SubstituteBindings::class,</span><br><span class="line">    <span class="string">'can'</span> =&gt; \Illuminate\Auth\Middleware\Authorize::class,</span><br><span class="line">    <span class="string">'guest'</span> =&gt; \App\Http\Middleware\RedirectIfAuthenticated::class,</span><br><span class="line">    <span class="string">'throttle'</span> =&gt; \Illuminate\Routing\Middleware\ThrottleRequests::class,</span><br><span class="line">    <span class="string">'passport-administrators'</span> =&gt; \App\Http\Middleware\PassportCustomProvider::class</span><br><span class="line">];</span><br></pre></td></tr></table></figure>
+
+<h3 id="配置-passport-路由"><a href="#配置-passport-路由" class="headerlink" title="配置 passport 路由"></a>配置 passport 路由</h3><p>在 <code>app/Providers/AuthServiceProvider.php</code></p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">AuthServiceProvider</span> <span class="keyword">extends</span> <span class="title">ServiceProvider</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">boot</span><span class="params">()</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;registerPolicies();</span><br><span class="line">		</span><br><span class="line">        <span class="comment">// 我只需要前后端分离的 password 授权模式，所以只注册获取 Token 的路由</span></span><br><span class="line">        Passport::routes(<span class="function"><span class="keyword">function</span><span class="params">(RouteRegistrar $router)</span> </span>&#123;</span><br><span class="line">            $router-&gt;forAccessTokens();</span><br><span class="line">        &#125;, [<span class="string">'prefix'</span> =&gt; <span class="string">'admin/oauth'</span>, <span class="string">'middleware'</span> =&gt; <span class="string">'passport-administrators'</span>]);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>最后配置 LoginController 的路由，然后就发起请求吧！</p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ol>
+<li><a href="https://learnku.com/articles/13902/passport-api-authentication-multi-table-login#76f83f" target="_blank" rel="noopener">passport API 认证 – 多表登录</a></li>
+<li><a href="https://learnku.com/articles/4467/laravel-passport-steps-north-of-the-pit" target="_blank" rel="noopener">Laravel Passport 踩坑日记</a></li>
+<li><a href="https://learnku.com/articles/6976/laravel-55-uses-passport-to-implement-auth-authentication" target="_blank" rel="noopener">Laravel 5.5 使用 Passport 实现 Auth 认证</a></li>
+<li><a href="https://learnku.com/articles/6035/laravel55-developing-api-combat" target="_blank" rel="noopener">Laravel5.5+passport 放弃 dingo 开发 API 实战，让 API 开发更省心</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Laravel/" rel="tag"># Laravel</a>
+              <a href="/tags/OAuth/" rel="tag"># OAuth</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item"></div>
+      <div class="post-nav-item">
+    <a href="/2019/07/26/Hexo-%E5%90%84%E7%B1%BB%E7%BB%84%E4%BB%B6%E6%B1%87%E6%80%BB/" rel="next" title="Hexo 各类组件汇总">
+      Hexo 各类组件汇总 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#安装"><span class="nav-number">1.</span> <span class="nav-text">安装</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#配置"><span class="nav-number">2.</span> <span class="nav-text">配置</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#执行迁移"><span class="nav-number">2.1.</span> <span class="nav-text">执行迁移</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#生成加密密钥"><span class="nav-number">2.2.</span> <span class="nav-text">生成加密密钥</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#使用-HasApiTokens"><span class="nav-number">2.3.</span> <span class="nav-text">使用 HasApiTokens</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#更改-guard-和-provider"><span class="nav-number">2.4.</span> <span class="nav-text">更改 guard 和 provider</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#使用"><span class="nav-number">3.</span> <span class="nav-text">使用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#创建一个登录认证的-trait"><span class="nav-number">3.1.</span> <span class="nav-text">创建一个登录认证的 trait</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#登录控制器"><span class="nav-number">3.2.</span> <span class="nav-text">登录控制器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#创建一个处理请求的中间件-PassportCustomProvider"><span class="nav-number">3.3.</span> <span class="nav-text">创建一个处理请求的中间件 PassportCustomProvider</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#注册路由中间件"><span class="nav-number">3.4.</span> <span class="nav-text">注册路由中间件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#配置-passport-路由"><span class="nav-number">3.5.</span> <span class="nav-text">配置 passport 路由</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考资料"><span class="nav-number">4.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Jasongzj"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">Jasongzj</p>
+  <div class="site-description" itemprop="description">Stay Hungry, Stay Foolish</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">4</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/jasongzj" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;jasongzj" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:jasongzj@outlook.com" title="E-Mail → mailto:jasongzj@outlook.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Jasongzj</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">12k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">14 分钟</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+<script>
+  (function() {
+    function leancloudSelector(url) {
+      url = encodeURI(url);
+      return document.getElementById(url).querySelector('.leancloud-visitors-count');
+    }
+
+    function addCount(Counter) {
+      var visitors = document.querySelector('.leancloud_visitors');
+      var url = decodeURI(visitors.id);
+      var title = visitors.dataset.flagTitle;
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          if (results.length > 0) {
+            var counter = results[0];
+            leancloudSelector(url).innerText = counter.time + 1;
+            Counter('put', '/classes/Counter/' + counter.objectId, { time: { '__op': 'Increment', 'amount': 1 } })
+              .catch(error => {
+                console.error('Failed to save visitor count', error);
+              });
+          } else {
+              leancloudSelector(url).innerText = 'Counter not initialized! More info at console err msg.';
+              console.error('ATTENTION! LeanCloud counter has security bug, see how to solve it here: https://github.com/theme-next/hexo-leancloud-counter-security. \n However, you can still use LeanCloud without security, by setting `security` option to `false`.');
+            
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    function showTime(Counter) {
+      var visitors = document.querySelectorAll('.leancloud_visitors');
+      var entries = [...visitors].map(element => {
+        return decodeURI(element.id);
+      });
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url: { '$in': entries } })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          for (let url of entries) {
+            let target = results.find(item => item.url === url);
+            leancloudSelector(url).innerText = target ? target.time : 0;
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    let { app_id, app_key, server_url } = {"enable":true,"app_id":"KWcnDIighHusFaBcrbpQVNDN-gzGzoHsz","app_key":"X9lGoro0JXNgFR3SGR5tFydx","server_url":"http://jasongzj.github.io","security":true};
+    function fetchData(api_server) {
+      var Counter = (method, url, data) => {
+        return fetch(`${api_server}/1.1${url}`, {
+          method,
+          headers: {
+            'X-LC-Id'     : app_id,
+            'X-LC-Key'    : app_key,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+      };
+      if (CONFIG.page.isPost) {
+        if (CONFIG.hostname !== location.hostname) return;
+        addCount(Counter);
+      } else if (document.querySelectorAll('.post-title-link').length >= 1) {
+        showTime(Counter);
+      }
+    }
+
+    let api_server = app_id.slice(-9) !== '-MdYXbMMI' ? server_url : `https://${app_id.slice(0, 8).toLowerCase()}.api.lncldglobal.com`;
+
+    if (api_server) {
+      fetchData(api_server);
+    } else {
+      fetch('https://app-router.leancloud.cn/2/route?appId=' + app_id)
+        .then(response => response.json())
+        .then(({ api_server }) => {
+          fetchData('https://' + api_server);
+        });
+    }
+  })();
+</script>
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"debug":false,"model":{"jsonPath":"/live2dw/assets/hijiki.model.json"},"display":{"position":"right","width":150,"height":300},"mobile":{"show":true},"react":{"opacity":0.7},"log":false});</script></body>
+</html>
