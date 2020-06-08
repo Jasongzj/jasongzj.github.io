@@ -20,30 +20,32 @@
     var CONFIG = {"hostname":"jasongzj.github.io","root":"/","scheme":"Gemini","version":"8.0.0-rc.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta name="description" content="Stay Hungry, Stay Foolish">
-<meta property="og:type" content="website">
-<meta property="og:title" content="第三选择">
-<meta property="og:url" content="http://jasongzj.github.io/index.html">
+  <meta name="description" content="不知道平时小伙伴在用 Laravel 返回响应时，有没有想过：Laravel 到底是怎么把响应返回给到客户端的呢？简单的一句 response()-&gt;json() 的背后，经历了什么样曲折坎坷的故事？今天走进 Laravel，让我们来一探究竟。 response() 返回的是什么？首先从最表层开始，我们在控制器中要输出 Json 响应时，只需要一句 response()-&gt;json()">
+<meta property="og:type" content="article">
+<meta property="og:title" content="从零学习Laravel框架-Json响应">
+<meta property="og:url" content="http://jasongzj.github.io/2020/06/08/%E4%BB%8E%E9%9B%B6%E5%AD%A6%E4%B9%A0Laravel%E6%A1%86%E6%9E%B6-%E5%93%8D%E5%BA%94/index.html">
 <meta property="og:site_name" content="第三选择">
-<meta property="og:description" content="Stay Hungry, Stay Foolish">
+<meta property="og:description" content="不知道平时小伙伴在用 Laravel 返回响应时，有没有想过：Laravel 到底是怎么把响应返回给到客户端的呢？简单的一句 response()-&gt;json() 的背后，经历了什么样曲折坎坷的故事？今天走进 Laravel，让我们来一探究竟。 response() 返回的是什么？首先从最表层开始，我们在控制器中要输出 Json 响应时，只需要一句 response()-&gt;json()">
 <meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-06-08T03:55:03.000Z">
+<meta property="article:modified_time" content="2020-06-08T10:00:11.326Z">
 <meta property="article:author" content="Jasongzj">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="http://jasongzj.github.io/">
+<link rel="canonical" href="http://jasongzj.github.io/2020/06/08/%E4%BB%8E%E9%9B%B6%E5%AD%A6%E4%B9%A0Laravel%E6%A1%86%E6%9E%B6-%E5%93%8D%E5%BA%94/">
 
 
 <script id="page-configurations">
   // https://hexo.io/docs/variables.html
   CONFIG.page = {
     sidebar: "",
-    isHome : true,
-    isPost : false,
+    isHome : false,
+    isPost : true,
     lang   : 'zh-CN'
   };
 </script>
 
-  <title>第三选择</title>
+  <title>从零学习Laravel框架-Json响应 | 第三选择</title>
   
 
 
@@ -156,9 +158,10 @@
         <div class="content-wrap">
           
 
-          <div class="content index posts-expand">
+          <div class="content post posts-expand">
             
-      
+
+    
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
@@ -174,10 +177,9 @@
       <meta itemprop="name" content="第三选择">
     </span>
       <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/06/08/%E4%BB%8E%E9%9B%B6%E5%AD%A6%E4%B9%A0Laravel%E6%A1%86%E6%9E%B6-%E5%93%8D%E5%BA%94/" class="post-title-link" itemprop="url">从零学习Laravel框架-Json响应</a>
-        </h2>
+        <h1 class="post-title" itemprop="name headline">
+          从零学习Laravel框架-Json响应
+        </h1>
 
         <div class="post-meta">
             <span class="post-meta-item">
@@ -236,7 +238,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>不知道平时小伙伴在用 Laravel 返回响应时，有没有想过：Laravel 到底是怎么把响应返回给到客户端的呢？简单的一句 <code>response()-&gt;json()</code> 的背后，经历了什么样曲折坎坷的故事？今天走进 Laravel，让我们来一探究竟。</p>
+        <p>不知道平时小伙伴在用 Laravel 返回响应时，有没有想过：Laravel 到底是怎么把响应返回给到客户端的呢？简单的一句 <code>response()-&gt;json()</code> 的背后，经历了什么样曲折坎坷的故事？今天走进 Laravel，让我们来一探究竟。</p>
 <h3 id="response-返回的是什么？"><a href="#response-返回的是什么？" class="headerlink" title="response() 返回的是什么？"></a>response() 返回的是什么？</h3><p>首先从最表层开始，我们在控制器中要输出 Json 响应时，只需要一句 <code>response()-&gt;json()</code> 就可以输出 Json 响应了，那我们先来看看这个 <code>response()</code> 输出的是什么：</p>
 <figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Return a new response from the application.</span></span><br><span class="line"><span class="comment"> * 从容器中返回一个响应类</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  \Illuminate\View\View|string|array|null  $content</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  int  $status</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  array  $headers</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> \Illuminate\Http\Response|\Illuminate\Contracts\Routing\ResponseFactory</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">response</span><span class="params">($content = <span class="string">''</span>, $status = <span class="number">200</span>, array $headers = [])</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    $factory = app(ResponseFactory::class);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (func_num_args() === <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> $factory;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> $factory-&gt;make($content, $status, $headers);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
@@ -264,500 +266,37 @@
 <p>在 json 响应里是不涉及 callback 调用的，所以这里的 <code>$this-&gt;callback</code> 的逻辑是不执行的。往下则是执行 <code>setContent</code> 的逻辑，将 <code>$this-&gt;content</code> 的内容更新为 <code>$this-&gt;data</code>。</p>
 <p>至此，<code>response()-&gt;json()</code> 所经历的故事我们就看完了，我们最终返回的，就是一个实例化的 <code>JsonResponse</code> 对象。</p>
 
-      
     </div>
 
     
     
     
+
       <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://jasongzj.github.io/2019/09/23/%E6%89%B9%E9%87%8F%E6%9B%B4%E6%96%B0%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AD%97%E6%AE%B5/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.jpg">
-      <meta itemprop="name" content="Jasongzj">
-      <meta itemprop="description" content="Stay Hungry, Stay Foolish">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="第三选择">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/09/23/%E6%89%B9%E9%87%8F%E6%9B%B4%E6%96%B0%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AD%97%E6%AE%B5/" class="post-title-link" itemprop="url">批量更新数据库字段</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-09-23 17:20:52" itemprop="dateCreated datePublished" datetime="2019-09-23T17:20:52+08:00">2019-09-23</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-05-28 13:55:07" itemprop="dateModified" datetime="2020-05-28T13:55:07+08:00">2020-05-28</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Mysql/" itemprop="url" rel="index"><span itemprop="name">Mysql</span></a>
-                </span>
-            </span>
-
-          
-            <span id="/2019/09/23/%E6%89%B9%E9%87%8F%E6%9B%B4%E6%96%B0%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AD%97%E6%AE%B5/" class="post-meta-item leancloud_visitors" data-flag-title="批量更新数据库字段" title="阅读次数">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">阅读次数：</span>
-              <span class="leancloud-visitors-count"></span>
-            </span>
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Valine：</span>
-    
-    <a title="valine" href="/2019/09/23/%E6%89%B9%E9%87%8F%E6%9B%B4%E6%96%B0%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AD%97%E6%AE%B5/#valine-comments" itemprop="discussionUrl">
-      <span class="post-comments-count valine-comment-count" data-xid="/2019/09/23/%E6%89%B9%E9%87%8F%E6%9B%B4%E6%96%B0%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AD%97%E6%AE%B5/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>1.4k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>2 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>今天在修改项目 bug 的时候，有这么一个场景，需要去同步远程数据库的数据，但是不能确定是要新增还是更新，因此需要每一条进行判断。</p>
-<p>一开始做的时候，是在遍历并进行判断以后，针对每一条的接口来执行数据库的插入或更新的操作。（现在看看觉得很蠢，性能太差了）</p>
-<p>使用框架进行CURD操作时，每执行一次语句都需要连接一次数据库，并执行优化、分析的操作。因此希望可以尽可能的一次执行多条记录的操作。</p>
-<p>批量插入的操作，日常中使用的非常多了，就不多赘述了，主要讲讲批量更新的语法。</p>
-<p>因为日常是使用 Laravel 框架的，所以我也封装好了一个方法，有需要的可以直接拿去使用。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2019/09/23/%E6%89%B9%E9%87%8F%E6%9B%B4%E6%96%B0%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AD%97%E6%AE%B5/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
         
-      
-    </div>
 
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://jasongzj.github.io/2019/09/17/%E3%80%8A%E5%9B%BE%E8%A7%A3HTTP%E3%80%8B%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.jpg">
-      <meta itemprop="name" content="Jasongzj">
-      <meta itemprop="description" content="Stay Hungry, Stay Foolish">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="第三选择">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/09/17/%E3%80%8A%E5%9B%BE%E8%A7%A3HTTP%E3%80%8B%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/" class="post-title-link" itemprop="url">《图解HTTP》读书笔记</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-09-17 10:50:07" itemprop="dateCreated datePublished" datetime="2019-09-17T10:50:07+08:00">2019-09-17</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-05-28 13:55:21" itemprop="dateModified" datetime="2020-05-28T13:55:21+08:00">2020-05-28</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index"><span itemprop="name">读书笔记</span></a>
-                </span>
-            </span>
-
-          
-            <span id="/2019/09/17/%E3%80%8A%E5%9B%BE%E8%A7%A3HTTP%E3%80%8B%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/" class="post-meta-item leancloud_visitors" data-flag-title="《图解HTTP》读书笔记" title="阅读次数">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">阅读次数：</span>
-              <span class="leancloud-visitors-count"></span>
-            </span>
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Valine：</span>
-    
-    <a title="valine" href="/2019/09/17/%E3%80%8A%E5%9B%BE%E8%A7%A3HTTP%E3%80%8B%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/#valine-comments" itemprop="discussionUrl">
-      <span class="post-comments-count valine-comment-count" data-xid="/2019/09/17/%E3%80%8A%E5%9B%BE%E8%A7%A3HTTP%E3%80%8B%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>3.7k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>4 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>作为一名 WEB 开发，所做的项目大都是通过 HTTP 协议建立连接的，但又有多少人清楚 HTTP 建立连接的过程究竟是怎么一回事呢？这本书也发现了现今环境下存在的这个问题，于是选择用图文并茂，更浅显易懂的方式，来讲述 HTTP 的相关知识。在学习完本书，对 HTTP 协议有了一个基础的认识后，也计划花点时间拜读一下 《HTTP权威指南》和 《TCP/IP 详解，卷1》两本圣经，向计算机世界的更深处出发。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2019/09/17/%E3%80%8A%E5%9B%BE%E8%A7%A3HTTP%E3%80%8B%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
         
-      
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/09/23/%E6%89%B9%E9%87%8F%E6%9B%B4%E6%96%B0%E6%95%B0%E6%8D%AE%E5%BA%93%E5%AD%97%E6%AE%B5/" rel="prev" title="批量更新数据库字段">
+      <i class="fa fa-chevron-left"></i> 批量更新数据库字段
+    </a></div>
+      <div class="post-nav-item"></div>
     </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
       </footer>
+    
   </article>
   
   
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://jasongzj.github.io/2019/07/26/Hexo-%E5%90%84%E7%B1%BB%E7%BB%84%E4%BB%B6%E6%B1%87%E6%80%BB/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.jpg">
-      <meta itemprop="name" content="Jasongzj">
-      <meta itemprop="description" content="Stay Hungry, Stay Foolish">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="第三选择">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/07/26/Hexo-%E5%90%84%E7%B1%BB%E7%BB%84%E4%BB%B6%E6%B1%87%E6%80%BB/" class="post-title-link" itemprop="url">Hexo 各类组件汇总</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-07-26 18:30:30" itemprop="dateCreated datePublished" datetime="2019-07-26T18:30:30+08:00">2019-07-26</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-05-28 19:09:11" itemprop="dateModified" datetime="2020-05-28T19:09:11+08:00">2020-05-28</time>
-              </span>
-
-          
-            <span id="/2019/07/26/Hexo-%E5%90%84%E7%B1%BB%E7%BB%84%E4%BB%B6%E6%B1%87%E6%80%BB/" class="post-meta-item leancloud_visitors" data-flag-title="Hexo 各类组件汇总" title="阅读次数">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">阅读次数：</span>
-              <span class="leancloud-visitors-count"></span>
-            </span>
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Valine：</span>
-    
-    <a title="valine" href="/2019/07/26/Hexo-%E5%90%84%E7%B1%BB%E7%BB%84%E4%BB%B6%E6%B1%87%E6%80%BB/#valine-comments" itemprop="discussionUrl">
-      <span class="post-comments-count valine-comment-count" data-xid="/2019/07/26/Hexo-%E5%90%84%E7%B1%BB%E7%BB%84%E4%BB%B6%E6%B1%87%E6%80%BB/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>293</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>1 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="主题："><a href="#主题：" class="headerlink" title="主题："></a>主题：</h2><ol>
-<li>NexT 主题<br>简约的黑白搭配，还有各类拓展，值得推荐，<a href="https://github.com/theme-next/hexo-theme-next" target="_blank" rel="noopener">github地址</a></li>
-</ol>
-<h2 id="功能性："><a href="#功能性：" class="headerlink" title="功能性："></a>功能性：</h2><ol>
-<li><p>Leancloud: 阅读统计，为每篇文章添加阅读次数显示<br><a href="https://github.com/theme-next/hexo-theme-next/blob/3dabc1651bbfa9376815e2e561ffb9c42049a3ad/docs/zh-CN/LEANCLOUD-COUNTER-SECURITY.md" target="_blank" rel="noopener">配置操作文档</a></p>
-<blockquote>
-<p>注意要注册国际版的，国内的需要添加已备案的域名，比较麻烦。</p>
-</blockquote>
-</li>
-<li><p>Valine: 评论系统，可以增加博客的互动。<a href="https://valine.js.org/" target="_blank" rel="noopener">文档说明</a></p>
-<blockquote>
-<p>如果要禁用某些页面的评论的话：可以在文章的 Front-matter 增加 <code>comments:false</code> 的属性</p>
-</blockquote>
-</li>
-</ol>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2019/07/26/Hexo-%E5%90%84%E7%B1%BB%E7%BB%84%E4%BB%B6%E6%B1%87%E6%80%BB/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://jasongzj.github.io/2019/07/25/Laravel-Passport-%E5%A4%9A%E8%A1%A8%E7%94%A8%E6%88%B7%E8%AE%A4%E8%AF%81%E8%B8%A9%E5%9D%91/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.jpg">
-      <meta itemprop="name" content="Jasongzj">
-      <meta itemprop="description" content="Stay Hungry, Stay Foolish">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="第三选择">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/07/25/Laravel-Passport-%E5%A4%9A%E8%A1%A8%E7%94%A8%E6%88%B7%E8%AE%A4%E8%AF%81%E8%B8%A9%E5%9D%91/" class="post-title-link" itemprop="url">Laravel Passport 多表用户认证踩坑</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-07-25 17:05:22" itemprop="dateCreated datePublished" datetime="2019-07-25T17:05:22+08:00">2019-07-25</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-05-28 13:55:31" itemprop="dateModified" datetime="2020-05-28T13:55:31+08:00">2020-05-28</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Laravel/" itemprop="url" rel="index"><span itemprop="name">Laravel</span></a>
-                </span>
-            </span>
-
-          
-            <span id="/2019/07/25/Laravel-Passport-%E5%A4%9A%E8%A1%A8%E7%94%A8%E6%88%B7%E8%AE%A4%E8%AF%81%E8%B8%A9%E5%9D%91/" class="post-meta-item leancloud_visitors" data-flag-title="Laravel Passport 多表用户认证踩坑" title="阅读次数">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">阅读次数：</span>
-              <span class="leancloud-visitors-count"></span>
-            </span>
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Valine：</span>
-    
-    <a title="valine" href="/2019/07/25/Laravel-Passport-%E5%A4%9A%E8%A1%A8%E7%94%A8%E6%88%B7%E8%AE%A4%E8%AF%81%E8%B8%A9%E5%9D%91/#valine-comments" itemprop="discussionUrl">
-      <span class="post-comments-count valine-comment-count" data-xid="/2019/07/25/Laravel-Passport-%E5%A4%9A%E8%A1%A8%E7%94%A8%E6%88%B7%E8%AE%A4%E8%AF%81%E8%B8%A9%E5%9D%91/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>6.2k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>8 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>本次项目的后台使用 iview-admin 搭建，前后端是分离的，需要给后台管理也写一套接口（看了几篇资料说可以把iview-admin 放到 laravel 项目里跑，但没有成功，卒），于是想用 passport 来做后台接口的认证。谁知过程一波三折，折腾了两天，算是摸清了坑也爬起来了。坑了一次不能再被坑第二次，也不希望后面的人接着被坑，于是就有了这篇文章，给大家介绍一下整体的流程和避坑操作。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2019/07/25/Laravel-Passport-%E5%A4%9A%E8%A1%A8%E7%94%A8%E6%88%B7%E8%AE%A4%E8%AF%81%E8%B8%A9%E5%9D%91/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-
   
 
 
 
           </div>
           
+    <div class="comments" id="valine-comments"></div>
 
 <script>
   window.addEventListener('tabs:register', () => {
@@ -804,6 +343,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#response-返回的是什么？"><span class="nav-number">1.</span> <span class="nav-text">response() 返回的是什么？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#json-方法做了什么？"><span class="nav-number">2.</span> <span class="nav-text">json() 方法做了什么？</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
